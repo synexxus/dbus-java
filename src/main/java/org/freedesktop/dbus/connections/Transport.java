@@ -33,10 +33,11 @@ import jnr.unixsocket.UnixServerSocket;
 import jnr.unixsocket.UnixSocket;
 import jnr.unixsocket.UnixSocketAddress;
 import jnr.unixsocket.UnixSocketChannel;
+import jnr.unixsocket.UnixSocketOptions;
 
 public class Transport implements Closeable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
-
+  
     private MessageReader min;
     private MessageWriter mout;
 
@@ -114,15 +115,20 @@ public class Transport implements Closeable {
             } else {
                 mode = SASL.MODE_CLIENT;
 
-                UnixSocketChannel channel = UnixSocketChannel.open();
-                us = new UnixSocket(channel);
+                UnixSocketChannel channel = null; 
+                
                 if (null != address.getParameter("abstract")) {
-                    us.connect(new UnixSocketAddress(address.getParameter("abstract")));
+                    channel = UnixSocketChannel.open(new UnixSocketAddress(address.getParameter("abstract")));
                 } else if (null != address.getParameter("path")) {
-                    us.connect(new UnixSocketAddress(address.getParameter("path")));
+                    channel = UnixSocketChannel.open(new UnixSocketAddress(address.getParameter("path")));
+                } else {
+                    throw new IOException("No valid unix socket address given.");
                 }
+                channel.setOption(UnixSocketOptions.SO_PASSCRED, true);
+                // us.setPassCred(true);
+                us = new UnixSocket(channel);
             }
-           // us.setPassCred(true);
+
             in = us.getInputStream();
             out = us.getOutputStream();
         } else if (address.getBusType() == AddressBusTypes.TCP) {

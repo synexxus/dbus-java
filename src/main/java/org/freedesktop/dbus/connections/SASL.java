@@ -23,11 +23,14 @@ import org.freedesktop.dbus.messages.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jnr.ffi.Struct.gid_t;
 import jnr.unixsocket.Credentials;
+import jnr.unixsocket.Ucred;
 import jnr.unixsocket.UnixSocket;
 
 public class SASL {
     private final Logger logger = LoggerFactory.getLogger(getClass());
+    
     public static class Command {
         private final Logger logger = LoggerFactory.getLogger(getClass());
         private int    command;
@@ -539,7 +542,11 @@ public class SASL {
                                 0
                         });
                     } else {
-//                        us.sendCredentialByte((byte) 0);
+                        // TODO: Send credentials
+//                        Ucred ucred = new Ucred();
+//                        ucred.setGidField(new gid_t(0));
+                        us.getOutputStream().write((byte) 0);
+                        //us.sendCredentialByte((byte) 0);
                     }
                     send(out, COMMAND_AUTH);
                     state = WAIT_DATA;
