@@ -29,9 +29,10 @@ import org.freedesktop.dbus.messages.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import cx.ath.matthew.unix.UnixServerSocket;
-import cx.ath.matthew.unix.UnixSocket;
-import cx.ath.matthew.unix.UnixSocketAddress;
+import jnr.unixsocket.UnixServerSocket;
+import jnr.unixsocket.UnixSocket;
+import jnr.unixsocket.UnixSocketAddress;
+import jnr.unixsocket.UnixSocketChannel;
 
 public class Transport implements Closeable {
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -105,23 +106,23 @@ public class Transport implements Closeable {
                 mode = SASL.MODE_SERVER;
                 unixServerSocket = new UnixServerSocket();
                 if (null != address.getParameter("abstract")) {
-                    unixServerSocket.bind(new UnixSocketAddress(address.getParameter("abstract"), true));
+                    unixServerSocket.bind(new UnixSocketAddress(address.getParameter("abstract")));
                 } else if (null != address.getParameter("path")) {
-                    unixServerSocket.bind(new UnixSocketAddress(address.getParameter("path"), false));
+                    unixServerSocket.bind(new UnixSocketAddress(address.getParameter("path")));
                 }
                 us = unixServerSocket.accept();
             } else {
                 mode = SASL.MODE_CLIENT;
 
-
-                us = new UnixSocket();
+                UnixSocketChannel channel = UnixSocketChannel.open();
+                us = new UnixSocket(channel);
                 if (null != address.getParameter("abstract")) {
-                    us.connect(new UnixSocketAddress(address.getParameter("abstract"), true));
+                    us.connect(new UnixSocketAddress(address.getParameter("abstract")));
                 } else if (null != address.getParameter("path")) {
-                    us.connect(new UnixSocketAddress(address.getParameter("path"), false));
+                    us.connect(new UnixSocketAddress(address.getParameter("path")));
                 }
             }
-            us.setPassCred(true);
+           // us.setPassCred(true);
             in = us.getInputStream();
             out = us.getOutputStream();
         } else if (address.getBusType() == AddressBusTypes.TCP) {
@@ -149,9 +150,7 @@ public class Transport implements Closeable {
         }
         if (null != us) {
             logger.trace("Setting timeout to {} on Socket", timeout);
-            if (timeout == 1) {
-                us.setBlocking(false);
-            } else {
+            if (timeout > 1) {
                 us.setSoTimeout(timeout);
             }
         }
@@ -167,9 +166,9 @@ public class Transport implements Closeable {
         logger.debug("Disconnecting Transport");
         min.close();
         mout.close();
-        if (unixServerSocket != null && !unixServerSocket.isClosed()) {
-            unixServerSocket.close();
-        }
+//        if (unixServerSocket != null && !unixServerSocket.isClosed()) {
+//            unixServerSocket.close();
+//        }
     }
 
     public boolean isConnected() {

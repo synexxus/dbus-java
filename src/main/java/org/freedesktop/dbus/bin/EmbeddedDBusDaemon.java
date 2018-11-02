@@ -14,9 +14,9 @@ import org.freedesktop.dbus.exceptions.DBusException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import cx.ath.matthew.unix.UnixServerSocket;
-import cx.ath.matthew.unix.UnixSocket;
-import cx.ath.matthew.unix.UnixSocketAddress;
+import jnr.unixsocket.UnixServerSocket;
+import jnr.unixsocket.UnixSocket;
+import jnr.unixsocket.UnixSocketAddress;
 
 /**
  *
@@ -93,13 +93,13 @@ public class EmbeddedDBusDaemon implements Closeable {
 
     private void startUnixSocket(BusAddress address) throws IOException {
         LOGGER.debug("enter");
-        UnixServerSocket uss;
+        UnixServerSocket uss = new UnixServerSocket();
         if (null != address.getParameter("abstract")) {
-            uss = new UnixServerSocket(new UnixSocketAddress(address.getParameter("abstract"), true));
+            uss.bind(new UnixSocketAddress(address.getParameter("abstract")));
         } else {
-            uss = new UnixServerSocket(new UnixSocketAddress(address.getParameter("path"), false));
+            uss.bind(new UnixSocketAddress(address.getParameter("path")));
         }
-        listenSocket = uss;
+        listenSocket = uss.accept();
 
         // accept new connections
         while (daemonThread.isRunning()) {
@@ -111,7 +111,7 @@ public class EmbeddedDBusDaemon implements Closeable {
                 s.close();
             }
         }
-        uss.close();
+        listenSocket.close();
         LOGGER.debug("exit");
 
     }

@@ -69,6 +69,11 @@
 	</build>
 
 	<dependencies>
+        <dependency>
+			<groupId>com.github.jnr</groupId>
+			<artifactId>jnr-unixsocket</artifactId>
+			<version>0.20</version>
+        </dependency>
 
 		<dependency>
 			<groupId>com.github.hypfvieh</groupId>

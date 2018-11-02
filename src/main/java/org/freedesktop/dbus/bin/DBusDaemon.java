@@ -53,7 +53,7 @@ import org.freedesktop.dbus.types.Variant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import cx.ath.matthew.unix.UnixSocket;
+import jnr.unixsocket.UnixSocket;
 
 /**
  * A replacement DBusDaemon
@@ -72,7 +72,7 @@ public class DBusDaemon extends Thread implements Closeable {
         public String        unique;
         // CHECKSTYLE:ON
 
-        Connstruct(UnixSocket sock) {
+        Connstruct(UnixSocket sock) throws IOException {
             this.usock = sock;
             min = new MessageReader(sock.getInputStream());
             mout = new MessageWriter(sock.getOutputStream());
@@ -841,7 +841,7 @@ public class DBusDaemon extends Thread implements Closeable {
 
     }
 
-    public void addSock(UnixSocket us) {
+    public void addSock(UnixSocket us) throws IOException {
 
         LOGGER.debug("enter");
         LOGGER.warn("New Client");
@@ -968,9 +968,10 @@ public class DBusDaemon extends Thread implements Closeable {
 
         // start the daemon
         LOGGER.warn("Binding to {}", addr);
-        EmbeddedDBusDaemon daemon = new EmbeddedDBusDaemon();
-        daemon.setAddress(address);
-        daemon.startInForeground();
+        try (EmbeddedDBusDaemon daemon = new EmbeddedDBusDaemon()) {
+            daemon.setAddress(address);
+            daemon.startInForeground();
+        }
         LOGGER.debug("exit");
     }
 }

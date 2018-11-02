@@ -23,7 +23,8 @@ import org.freedesktop.dbus.messages.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import cx.ath.matthew.unix.UnixSocket;
+import jnr.unixsocket.Credentials;
+import jnr.unixsocket.UnixSocket;
 
 public class SASL {
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -538,7 +539,7 @@ public class SASL {
                                 0
                         });
                     } else {
-                        us.sendCredentialByte((byte) 0);
+//                        us.sendCredentialByte((byte) 0);
                     }
                     send(out, COMMAND_AUTH);
                     state = WAIT_DATA;
@@ -658,8 +659,9 @@ public class SASL {
                     if (null == us) {
                         in.read(buf);
                     } else {
-                        buf[0] = us.recvCredentialByte();
-                        int kuid = us.getPeerUID();
+                        Credentials credentials = us.getCredentials();
+
+                        int kuid = credentials.getUid();
                         if (kuid >= 0) {
                             kernelUid = stupidlyEncode("" + kuid);
                         }
