@@ -1,0 +1,3 @@
+
+com.github.hypfvieh dbus-java jar s/.*/debian/ * *
+com.github.hypfvieh java-utils jar s/.*/debian/ * *

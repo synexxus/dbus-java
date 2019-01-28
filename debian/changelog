@@ -1,0 +1,6 @@
+dbus-java3 (3.0.2-SNAPSHOT-1) UNRELEASED; urgency=medium
+
+  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your
+    ITP>
+
+ -- Robert Middleton <rmiddleton@synexxus.com>  Mon, 28 Jan 2019 15:07:19 -0500

@@ -1,0 +1,11 @@
+
+ch.qos.logback logback-classic * * * *
+ch.qos.logback logback-core * * * *
+org.apache.maven.plugins maven-enforcer-plugin * * * *
+org.apache.maven.plugins maven-surefire-plugin * * * *
+org.codehaus.mojo animal-sniffer-maven-plugin * * * *
+org.junit.jupiter junit-jupiter-api * * * *
+org.junit.jupiter junit-jupiter-engine * * * *
+org.junit.jupiter junit-jupiter-params * * * *
+org.junit.platform junit-platform-launcher * * * *
+org.mockito mockito-core * * * *

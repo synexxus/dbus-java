@@ -1,0 +1,24 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: dbus-java
+Source: github.com/hypfvieh/dbus-java
+
+Files: *
+Copyright: 2019, Matthew Johnson <src@matthew.ath.cx>
+License: BSD or LGPL-2
+
+Files: debian/*
+Copyright: 2019, Robert Middleton <rmiddleton@synexxus.com>
+License: Apache-2.0
+
+License: Apache-2.0
+ On Debian systems, the full text of the Apache-2.0 license
+ can be found in the file '/usr/share/common-licenses/Apache-2.0'
+
+License: BSD
+  TODO: include the full text of the license here
+
+License: LGPL-2
+ On Debian systems, the full text of the LGPL-2 license
+ can be found in the file '/usr/share/common-licenses/LGPL-2'
+
+
