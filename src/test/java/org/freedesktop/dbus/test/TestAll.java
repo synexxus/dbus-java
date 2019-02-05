@@ -12,6 +12,7 @@ package org.freedesktop.dbus.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -26,6 +27,7 @@ import java.util.Map;
 
 import org.freedesktop.DBus;
 import org.freedesktop.dbus.DBusAsyncReply;
+import org.freedesktop.dbus.DBusMatchRule;
 import org.freedesktop.dbus.DBusPath;
 import org.freedesktop.dbus.Marshalling;
 import org.freedesktop.dbus.connections.impl.DBusConnection;
@@ -34,10 +36,12 @@ import org.freedesktop.dbus.errors.ServiceUnknown;
 import org.freedesktop.dbus.errors.UnknownObject;
 import org.freedesktop.dbus.exceptions.DBusException;
 import org.freedesktop.dbus.exceptions.DBusExecutionException;
+import org.freedesktop.dbus.interfaces.CallbackHandler;
 import org.freedesktop.dbus.interfaces.Introspectable;
 import org.freedesktop.dbus.interfaces.Local;
 import org.freedesktop.dbus.interfaces.Peer;
 import org.freedesktop.dbus.interfaces.Properties;
+import org.freedesktop.dbus.messages.DBusSignal;
 import org.freedesktop.dbus.test.helper.SampleClass;
 import org.freedesktop.dbus.test.helper.SampleException;
 import org.freedesktop.dbus.test.helper.SampleNewInterfaceClass;
@@ -56,6 +60,8 @@ import org.freedesktop.dbus.test.helper.signals.handler.ArraySignalHandler;
 import org.freedesktop.dbus.test.helper.signals.handler.BadArraySignalHandler;
 import org.freedesktop.dbus.test.helper.signals.handler.DisconnectHandler;
 import org.freedesktop.dbus.test.helper.signals.handler.EmptySignalHandler;
+import org.freedesktop.dbus.test.helper.signals.handler.GenericHandlerWithDecode;
+import org.freedesktop.dbus.test.helper.signals.handler.GenericSignalHandler;
 import org.freedesktop.dbus.test.helper.signals.handler.ObjectSignalHandler;
 import org.freedesktop.dbus.test.helper.signals.handler.PathSignalHandler;
 import org.freedesktop.dbus.test.helper.signals.handler.RenamedSignalHandler;
@@ -73,8 +79,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.github.hypfvieh.util.TimeMeasure;
-import org.freedesktop.dbus.interfaces.CallbackHandler;
-import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 
 /**
  * This is a test program which sends and recieves a signal, implements, exports and calls a remote method.
@@ -177,6 +181,46 @@ public class TestAll {
         clientconn.removeSigHandler(SampleSignals.TestEmptySignal.class, esh);
         clientconn.removeSigHandler(SampleSignals.TestRenamedSignal.class, rsh);
 
+    }
+
+    @Test
+    public void testGenericSignalHandler() throws DBusException, InterruptedException {
+        GenericSignalHandler genericHandler = new GenericSignalHandler();
+        DBusMatchRule signalRule = new DBusMatchRule("signal", "org.foo", "methodnoarg", "/");
+
+        clientconn.addGenericSigHandler(signalRule, genericHandler);
+
+        DBusSignal signalToSend = new DBusSignal(null, "/", "org.foo", "methodnoarg", null);
+
+        serverconn.sendMessage(signalToSend);
+
+        // wait some time to receive signals
+        Thread.sleep(1000L);
+
+        // ensure callback has been fired at least once
+        assertTrue(genericHandler.getActualTestRuns() == 1, "GenericHandler should have been called");
+
+        clientconn.removeGenericSigHandler(signalRule, genericHandler);
+    }
+
+    @Test
+    public void testGenericDecodeSignalHandler() throws DBusException, InterruptedException {
+        GenericHandlerWithDecode genericDecode = new GenericHandlerWithDecode(new UInt32(42), "SampleString");
+        DBusMatchRule signalRule = new DBusMatchRule("signal", "org.foo", "methodarg", "/");
+
+        clientconn.addGenericSigHandler(signalRule, genericDecode);
+
+        DBusSignal signalToSend =
+                new DBusSignal(null, "/", "org.foo", "methodarg", "us", new UInt32(42), "SampleString");
+
+        serverconn.sendMessage(signalToSend);
+
+        // wait some time to receive signals
+        Thread.sleep(1000L);
+
+        genericDecode.incomingSameAsExpected();
+
+        clientconn.removeGenericSigHandler(signalRule, genericDecode);
     }
 
     @Test
@@ -646,7 +690,7 @@ public class TestAll {
 
         assertEquals(tni.getName(), SampleNewInterfaceClass.class.getSimpleName());
     }
-    
+
     @Test
     public void testNestedListsAsync() throws DBusException, InterruptedException {
         SampleRemoteInterface2 tri2 = clientconn.getRemoteObject("foo.bar.Test", TEST_OBJECT_PATH, SampleRemoteInterface2.class);
@@ -655,6 +699,7 @@ public class TestAll {
         li.add(57);
         lli.add(li);
 
+        @SuppressWarnings("unchecked")
         DBusAsyncReply<List<List<Integer>>> checklistReply = (DBusAsyncReply<List<List<Integer>>>) clientconn.callMethodAsync(tri2, "checklist",
                 lli);
 
@@ -664,7 +709,7 @@ public class TestAll {
         assertIterableEquals(lli, checklistReply.getReply(), "did not get back the same as sent in async" );
         assertIterableEquals(li, checklistReply.getReply().get(0));
     }
-    
+
     @Test
     public void testNestedListsCallback() throws DBusException, InterruptedException {
         SampleRemoteInterface2 tri2 = clientconn.getRemoteObject("foo.bar.Test", TEST_OBJECT_PATH, SampleRemoteInterface2.class);
@@ -672,21 +717,21 @@ public class TestAll {
         List<Integer> li = new ArrayList<>();
         li.add(25);
         lli.add(li);
-        
+
         NestedListCallbackHandler cbHandle = new NestedListCallbackHandler();
 
         clientconn.callWithCallback( tri2, "checklist", cbHandle, lli );
 
         // wait a bit to allow the async call to complete
         Thread.sleep(500L);
-        
+
         assertIterableEquals(lli, cbHandle.getRetval(), "did not get back the same as sent in async" );
         assertIterableEquals(li, cbHandle.getRetval().get(0));
     }
-    
+
     private class NestedListCallbackHandler implements CallbackHandler<List<List<Integer>>> {
             private List<List<Integer>> retval;
-            
+
             @Override
             public void handle(List<List<Integer>> r) {
                 retval = r;
@@ -695,18 +740,19 @@ public class TestAll {
             @Override
             public void handleError(DBusExecutionException e) {
             }
-            
+
             List<List<Integer>> getRetval(){
                 return retval;
             }
     }
-    
+
     @Test
     public void testStructAsync() throws DBusException, InterruptedException {
         SampleRemoteInterface2 tri2 = clientconn.getRemoteObject("foo.bar.Test", TEST_OBJECT_PATH, SampleRemoteInterface2.class);
         SampleStruct struct = new SampleStruct( "fizbuzz", new UInt32( 5248 ), new Variant<Integer>( 2234 ) );
-        
 
+
+        @SuppressWarnings("unchecked")
         DBusAsyncReply<SampleStruct> structReply = (DBusAsyncReply<SampleStruct>) clientconn.callMethodAsync(tri2, "returnSamplestruct",
                 struct);
 
